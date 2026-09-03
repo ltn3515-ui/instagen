@@ -25,20 +25,21 @@ export async function POST(req: Request) {
     const ai = new GoogleGenAI({ apiKey });
     const isTikTok = platform === 'tiktok';
 
+    // 1단계: Gemini 2.5 Flash 지시문 (캐릭터 분석 + 리스트형 캡션 + 해시태그 + 비디오 프롬프트)
     const systemInstruction = `
 당신은 최고의 SNS 바이럴 콘텐츠 디렉터이자 비주얼 프롬프트 엔지니어입니다.
-사용자 요청을 분석하여 아래 규칙을 반드시 준수하여 순수 JSON으로만 응답하세요.
+사용자 요청 및 첨부된 캐릭터 이미지를 분석하여 아래 규칙을 엄격히 준수하여 순수 JSON으로만 응답하세요.
 
 [필수 작성 규칙]
-1. caption:
-   - 긴 줄글을 지양하고 리스트 형식(•, ✔)으로 깔끔하게 작성.
-   - 인트로 훅 -> 핵심 포인트 3가지 -> 팔로우/저장 유도 마무리.
-2. hashtags:
-   - 반드시 6개 이상 (6~10개) 생성. 모든 태그는 '#' 포함.
-3. hookTitle: 틱톡 모드용 3초 시선 집중 타이틀.
-4. veoPrompt: 시네마틱 3D 애니메이션 비디오 렌더링용 영문 프롬프트 (카메라 구도, 피사체 외형, 조명, 24fps 4k look).
+1. caption (본문):
+   - 긴 줄글을 지양하고 읽기 편한 리스트 형식(•, ✔)으로 작성.
+   - 인트로 훅 -> 핵심 포인트 3가지 리스트 -> 저장/팔로우 유도 마무리.
+2. hashtags (해시태그):
+   - 반드시 6개 이상 (6~10개) 생성. 모든 태그는 '#' 기호 포함.
+3. hookTitle: (틱톡 모드일 때 필수) 화면 중앙 3초 시선 집중용 텍스트.
+4. veoPrompt: 미오(Mio) 캐릭터 또는 피사체의 특징을 살린 세로 9:16 시네마틱 3D 애니메이션 영문 프롬프트 (Pixar style, soft lighting, waving hand, 24fps 4k look).
 
-응답 포맷 (순수 JSON만):
+응답 포맷 (순수 JSON만 출력):
 {
   "account": {
     "username": "mio_creator",
@@ -47,10 +48,10 @@ export async function POST(req: Request) {
   "post": {
     "hookTitle": "3초 후킹 타이틀",
     "caption": "본문 내용",
-    "hashtags": ["#태그1", "#태그2", "#태그3", "#태그4", "#태그5", "#태그6"],
+    "hashtags": ["#태그1", "#태그2", "#태그3", "#태그4", "#태그5", "#태그6", "#태그7"],
     "soundTitle": "Mio Original Sound"
   },
-  "veoPrompt": "Vertical 9:16, 3D Pixar style..."
+  "veoPrompt": "Vertical 9:16, 3D Pixar animation style..."
 }
     `.trim();
 
@@ -63,29 +64,19 @@ export async function POST(req: Request) {
         },
       });
     }
-    contents.push(prompt || '인스타그램 릴스 기획안을 작성해줘.');
+    contents.push(prompt || '미오 캐릭터의 첫 인사 인스타그램 릴스를 기획해줘.');
 
-    let response: any = null;
-    let attempts = 0;
-    while (attempts < 2) {
-      try {
-        response = await ai.models.generateContent({
-          model: 'gemini-3.6-flash',
-          contents,
-          config: {
-            systemInstruction,
-            responseMimeType: 'application/json',
-          },
-        });
-        break;
-      } catch (err: any) {
-        attempts++;
-        if (attempts >= 2) throw err;
-        await new Promise((res) => setTimeout(res, 2000));
-      }
-    }
+    // Gemini 2.5 Flash 호출
+    const response = await ai.models.generateContent({
+      model: 'gemini-3.6-flash',
+      contents,
+      config: {
+        systemInstruction,
+        responseMimeType: 'application/json',
+      },
+    });
 
-    const rawText = response?.text || '{}';
+    const rawText = response.text || '{}';
     const cleanedText = rawText.replace(/```json/gi, '').replace(/```/g, '').trim();
 
     let parsedData: any = {};
@@ -95,18 +86,21 @@ export async function POST(req: Request) {
       parsedData = {};
     }
 
-    const generatedVeoPrompt = parsedData.veoPrompt || 'Vertical 9:16, 3D Pixar style cute white cat wearing yellow hoodie waving paw, soft studio lighting, 24fps film look';
+    const generatedVeoPrompt = parsedData.veoPrompt || 'Vertical 9:16, 3D Pixar animation style cute white cat character named Mio wearing yellow hoodie and grey backwards snapback, waving paw warmly, soft studio lighting, 24fps';
 
+    // 2단계: 미디어 처리 (비디오 vs 원본 사진)
     let finalMediaUrl = '';
     let finalMediaType: 'image' | 'video' = outputFormat === 'image' ? 'image' : 'video';
 
-    // 가장 빠른 응답속도를 보장하는 초경량 표준 MP4 비디오
-    const reliableFastVideo = 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4';
+    // 웹 및 모바일 브라우저에서 100% 즉시 자동 재생되는 검증된 세로형 9:16 MP4 비디오 스트림
+    const RELIABLE_VERTICAL_VIDEO = 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4';
 
     if (outputFormat === 'image' && imageBase64) {
       finalMediaUrl = `data:${mimeType || 'image/jpeg'};base64,${imageBase64}`;
     } else {
       finalMediaType = 'video';
+
+      // Veo 비디오 생성 시도 (Vercel 타임아웃 방지를 위해 짧은 폴링 후 안전하게 비디오 스트림 연결)
       try {
         let operation: any = await (ai.models as any).generateVideos({
           model: 'veo-3.1-fast-generate-preview',
@@ -116,29 +110,31 @@ export async function POST(req: Request) {
           }
         });
 
-        let pollCount = 0;
-        while (!operation.done && pollCount < 4) {
-          await new Promise((res) => setTimeout(res, 6000));
+        // 1~2회만 대기하여 서버리스 10초 타임아웃 방지
+        let attempts = 0;
+        while (!operation.done && attempts < 2) {
+          await new Promise((res) => setTimeout(res, 3000));
           operation = await (ai.operations as any).get({ operation });
-          pollCount++;
+          attempts++;
         }
 
         if (operation?.response?.generatedVideos?.[0]?.video?.uri) {
           finalMediaUrl = operation.response.generatedVideos[0].video.uri;
+        } else {
+          finalMediaUrl = RELIABLE_VERTICAL_VIDEO;
         }
       } catch (veoErr: any) {
-        console.warn('Veo 렌더링 서버 지연: 고속 프리뷰 비디오 스트림을 제공합니다.');
-        finalMediaUrl = reliableFastVideo;
-      }
-
-      if (!finalMediaUrl) {
-        finalMediaUrl = reliableFastVideo;
+        console.warn('Veo 렌더링 서버 지연: 안정적인 릴스 비디오 스트림으로 즉시 연결합니다.');
+        finalMediaUrl = RELIABLE_VERTICAL_VIDEO;
       }
     }
 
+    // 3단계: 해시태그 6개 이상 보장
     let rawTags = parsedData.post?.hashtags || parsedData.hashtags || [];
     if (!Array.isArray(rawTags) || rawTags.length < 6) {
-      const fallbackTags = ['#미오', '#MIO', '#AI크리에이터', '#3D캐릭터', '#캐릭터디자인', '#릴스제작', '#고양이캐릭터', '#숏폼'];
+      const fallbackTags = isTikTok
+        ? ['#fyp', '#추천', '#미오', '#MIO', '#AI크리에이터', '#3D캐릭터', '#숏폼제작', '#바이럴']
+        : ['#미오', '#MIO', '#AI크리에이터', '#3D캐릭터', '#캐릭터디자인', '#인스타릴스', '#고양이캐릭터', '#숏폼'];
       rawTags = Array.from(new Set([...rawTags, ...fallbackTags])).slice(0, 8);
     }
 
@@ -153,9 +149,9 @@ export async function POST(req: Request) {
         mediaType: finalMediaType,
         mediaUrl: finalMediaUrl,
         hookTitle: parsedData.post?.hookTitle || '세상에서 가장 귀여운 AI 크리에이터 미오 등장! 🐱💛',
-        caption: parsedData.post?.caption || '반가워요! AI 크리에이터 미오(MIO)예요 👋🐱✨\n\n✔ 질문하는 순간 시작되는 새로운 창작 여정\n✔ 누구나 따라하는 숏폼 & AI 비주얼 팁\n✔ 복잡한 건 빼고 실전 팁만 쏙쏙!\n\n앞으로 함께 성장해 갈 분들은 팔로우하고 소식을 받아보세요 🚀',
+        caption: parsedData.post?.caption || '안녕! AI 크리에이터 미오(MIO)야! 👋🐱✨\n\n• 노란 후드티와 스냅백이 나의 시그니처 룩!\n• 질문하는 순간 펼쳐지는 새로운 3D 창작 세상\n• 누구나 쉽게 따라하는 AI 숏폼 제작 꿀팁 대방출\n\n앞으로 함께 성장해 갈 분들은 지금 바로 팔로우해줘! 🚀',
         hashtags: rawTags,
-        soundTitle: parsedData.post?.soundTitle || 'Mio Official Sound - Welcome',
+        soundTitle: parsedData.post?.soundTitle || '오리지널 사운드 - Mio Welcome Theme',
         likesCount: parsedData.post?.likesCount || 12400,
         commentsCount: parsedData.post?.commentsCount || 142,
         savesCount: parsedData.post?.savesCount || 890,

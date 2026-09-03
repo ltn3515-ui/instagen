@@ -45,34 +45,23 @@ export default function InstagramCard({ data, fallbackImageUrl, onAddToCalendar 
   const [isLiked, setIsLiked] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
   const [copied, setCopied] = useState(false);
-  const [videoError, setVideoError] = useState(false);
-  const [isVideoLoaded, setIsVideoLoaded] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
 
-  // 백업/포스터로 표시할 이미지 주소
-  const displayBackupImage = fallbackImageUrl ||
-    (data.post.mediaUrl?.startsWith('data:image') ? data.post.mediaUrl : 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=600&auto=format&fit=crop&q=80');
+  // 미오 이미지 프로필 및 썸네일
+  const displayProfileImage = fallbackImageUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80';
 
-  const isPureImage = data.post.mediaType === 'image' || data.post.mediaUrl?.startsWith('data:image');
+  // 미디어가 순수 이미지인지 여부 판별
+  const isImageMode = data.post.mediaType === 'image' || data.post.mediaUrl?.startsWith('data:image');
 
-  // 미디어 주소 변경 시 자동 재생 재시도
   useEffect(() => {
-    setVideoError(false);
-    setIsVideoLoaded(false);
     setIsPlaying(true);
-
-    if (videoRef.current && !isPureImage) {
+    if (videoRef.current && !isImageMode) {
       videoRef.current.defaultMuted = true;
       videoRef.current.muted = true;
       videoRef.current.currentTime = 0;
-      const playPromise = videoRef.current.play();
-      if (playPromise !== undefined) {
-        playPromise
-          .then(() => setIsPlaying(true))
-          .catch(() => setIsPlaying(false));
-      }
+      videoRef.current.play().catch(() => setIsPlaying(false));
     }
-  }, [data.post.mediaUrl, isPureImage]);
+  }, [data.post.mediaUrl, isImageMode]);
 
   const togglePlay = () => {
     if (!videoRef.current) return;
@@ -106,7 +95,7 @@ export default function InstagramCard({ data, fallbackImageUrl, onAddToCalendar 
         <div className="flex items-center gap-2.5">
           <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-amber-500 via-rose-500 to-fuchsia-600 p-[2px]">
             <img
-              src={displayBackupImage}
+              src={displayProfileImage}
               alt={data.account.username}
               className="w-full h-full rounded-full object-cover border border-white"
             />
@@ -126,48 +115,38 @@ export default function InstagramCard({ data, fallbackImageUrl, onAddToCalendar 
         </span>
       </div>
 
-      {/* 2. 미디어 뷰포트 (비디오 / 이미지) */}
+      {/* 2. 미디어 뷰포트 (비디오 재생) */}
       <div className="relative aspect-[9/16] bg-zinc-950 flex items-center justify-center overflow-hidden cursor-pointer select-none" onClick={togglePlay}>
-        {isPureImage || videoError ? (
+        {isImageMode ? (
           <img
-            src={displayBackupImage}
-            alt="Content Visual"
+            src={data.post.mediaUrl || displayProfileImage}
+            alt="Mio Visual"
             className="w-full h-full object-cover"
           />
         ) : (
           <video
             ref={videoRef}
+            key={data.post.mediaUrl}
             src={data.post.mediaUrl}
-            poster={displayBackupImage}
             autoPlay
             loop
             muted={isMuted}
             playsInline
             preload="auto"
-            onLoadedData={() => {
-              setIsVideoLoaded(true);
-              if (videoRef.current) {
-                videoRef.current.play().then(() => setIsPlaying(true)).catch(() => setIsPlaying(false));
-              }
-            }}
-            onError={() => {
-              console.warn("비디오 스트림 재생 오류: 백업 이미지로 전환합니다.");
-              setVideoError(true);
-            }}
             onPlay={() => setIsPlaying(true)}
             onPause={() => setIsPlaying(false)}
             className="w-full h-full object-cover"
           />
         )}
 
-        {/* 뱃지 */}
+        {/* 좌측 상단 뱃지 */}
         <div className="absolute top-3 left-3 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-black/60 backdrop-blur-md text-white text-[10px] font-bold border border-white/10 shadow-sm">
           <Sparkles className="w-3 h-3 text-amber-400" />
-          <span>{isPureImage || videoError ? 'AI Visual' : 'Veo Video'}</span>
+          <span>{isImageMode ? 'AI Visual' : 'Veo Video'}</span>
         </div>
 
-        {/* 음소거 토글 버튼 */}
-        {!isPureImage && !videoError && (
+        {/* 우측 하단 음소거 버튼 (동영상일 때만) */}
+        {!isImageMode && (
           <button
             onClick={toggleMute}
             className="absolute bottom-3 right-3 w-8 h-8 rounded-full bg-black/60 backdrop-blur-md text-white flex items-center justify-center border border-white/20 hover:scale-105 transition"
@@ -176,8 +155,8 @@ export default function InstagramCard({ data, fallbackImageUrl, onAddToCalendar 
           </button>
         )}
 
-        {/* 정지 오버레이 아이콘 (동영상이 로드된 후 실제로 멈춰 있을 때만 노출) */}
-        {!isPureImage && !isPlaying && isVideoLoaded && !videoError && (
+        {/* 일시 정지 아이콘 */}
+        {!isImageMode && !isPlaying && (
           <div className="absolute inset-0 bg-black/30 flex items-center justify-center pointer-events-none">
             <div className="w-12 h-12 rounded-full bg-white/85 backdrop-blur-sm flex items-center justify-center text-zinc-900 shadow-lg">
               <Play className="w-5 h-5 fill-current ml-0.5" />
