@@ -65,21 +65,41 @@ export async function POST(req: Request) {
     }
     contents.push(prompt || '인스타그램 릴스 기획안을 작성해줘.');
 
-    const response = await ai.models.generateContent({
-      model: 'gemini-3.6-flash',
-      contents,
-      config: {
-        systemInstruction,
-        responseMimeType: 'application/json',
-      },
-    });
+    // 1단계: Gemini 텍스트/비주얼 분석 (503 트래픽 폭주 대비 재시도 로직)
+    let response: any = null;
+    let geminiAttempts = 0;
 
-    const rawText = response.text || '{}';
+    while (geminiAttempts < 2) {
+      try {
+        response = await ai.models.generateContent({
+          model: 'gemini-2.5-flash',
+          contents,
+          config: {
+            systemInstruction,
+            responseMimeType: 'application/json',
+          },
+        });
+        break;
+      } catch (err: any) {
+        geminiAttempts++;
+        if (geminiAttempts >= 2) throw err;
+        await new Promise((res) => setTimeout(res, 2000)); // 2초 대기 후 재시도
+      }
+    }
+
+    const rawText = response?.text || '{}';
     const cleanedText = rawText.replace(/```json/gi, '').replace(/```/g, '').trim();
-    const parsedData = JSON.parse(cleanedText);
 
-    const generatedVeoPrompt = parsedData.veoPrompt || 'Vertical 9:16, 3D Pixar style cute white cat wearing yellow hoodie waving hand, soft studio lighting, 24fps';
+    let parsedData: any = {};
+    try {
+      parsedData = JSON.parse(cleanedText);
+    } catch {
+      parsedData = {};
+    }
 
+    const generatedVeoPrompt = parsedData.veoPrompt || 'Vertical 9:16, 3D Pixar style cute white cat wearing yellow hoodie waving paw, soft studio lighting, 24fps film look';
+
+    // 2단계: 미디어 URL 처리
     let finalMediaUrl = '';
     let finalMediaType: 'image' | 'video' = outputFormat === 'image' ? 'image' : 'video';
 
@@ -97,8 +117,8 @@ export async function POST(req: Request) {
         });
 
         let attempts = 0;
-        while (!operation.done && attempts < 6) {
-          await new Promise((res) => setTimeout(res, 8000));
+        while (!operation.done && attempts < 5) {
+          await new Promise((res) => setTimeout(res, 6000));
           operation = await (ai.operations as any).get({ operation });
           attempts++;
         }
@@ -107,7 +127,8 @@ export async function POST(req: Request) {
           finalMediaUrl = operation.response.generatedVideos[0].video.uri;
         }
       } catch (veoErr: any) {
-        // 브라우저 재생 호환성이 보장된 CDN 비디오 리소스
+        // Veo 서버 지연/503 발생 시 안정적인 릴스 비디오 프리뷰 매칭
+        console.warn('Veo 렌더링 서버 지연/에러: 프리뷰 비디오로 대체합니다.');
         finalMediaUrl = 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4';
       }
 
@@ -116,6 +137,7 @@ export async function POST(req: Request) {
       }
     }
 
+    // 3단계: 해시태그 보장
     let rawTags = parsedData.post?.hashtags || parsedData.hashtags || [];
     if (!Array.isArray(rawTags) || rawTags.length < 6) {
       const fallbackTags = ['#미오', '#MIO', '#AI크리에이터', '#3D캐릭터', '#캐릭터디자인', '#릴스제작', '#고양이캐릭터', '#숏폼'];
@@ -147,6 +169,12 @@ export async function POST(req: Request) {
     return NextResponse.json(finalData);
   } catch (error: any) {
     console.error('API Route Error:', error);
-    return NextResponse.json({ error: error?.message || '콘텐츠 생성에 실패했습니다.' }, { status: 500 });
+    // 503 에러 발생 시 사용자 친화적인 메시지 반환
+    const is503 = error?.message?.includes('503') || error?.status === 503;
+    const errorMessage = is503
+      ? '구글 AI 서버에 일시적인 트래픽이 몰리고 있습니다. 잠시 후 다시 시도해 주세요.'
+      : (error?.message || '콘텐츠 생성에 실패했습니다.');
+
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }
