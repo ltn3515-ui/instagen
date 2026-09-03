@@ -18,33 +18,33 @@ import {
 
 const INITIAL_INSTA: FeedPayload = {
   account: {
-    username: 'creative_studio',
+    username: 'mio_official',
     isVerified: true,
-    location: 'Seoul, South Korea',
+    location: 'Mio Studio, Seoul',
     avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
   },
   post: {
     mediaType: 'video',
-    mediaUrl: 'https://assets.mixkit.co/videos/preview/mixkit-coffee-cup-with-latte-art-placed-on-a-table-41551-large.mp4',
-    likesCount: 3420,
-    caption: '오늘의 영감을 기록하는 일상 속 한 장면 ☕✨\n\n• 공간의 분위기를 바꾸는 작은 루틴\n• 자연스러운 순간을 시네마틱 무드로 담아내기\n• 나만의 감성을 표현하는 콘텐츠 제작 팁\n\n여러분의 오늘 하루는 어떤 분위기인가요? 댓글로 들려주세요 🌿',
-    hashtags: ['#릴스', '#감성릴스', '#시네마틱', '#일상기록', '#숏폼제작', '#크리에이터', '#영상제작', '#데일리로그'],
+    mediaUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
+    likesCount: 12400,
+    caption: '안녕! 난 미오(MIO)야! 👋🐱✨ 드디어 내 공식 채널이 오픈했어!\n\n• 💛 노랑 후드티와 스냅백이 나의 시그니처 룩!\n• 🎬 앞으로 매일 펼쳐질 신나고 따뜻한 3D 일상 스토리\n• 🎁 팔로워만을 위한 소소한 힐링 콘텐츠 대기 중!\n\n✔ 지금 바로 팔로우하고 미오의 첫 번째 절친이 되어줘! 📌 잊지 않게 저장 꾸욱!',
+    hashtags: ['#미오', '#MIO', '#3D애니메이션', '#캐릭터디자인', '#귀여운캐릭터', '#힐링콘텐츠', '#픽사스타일', '#인스타그램론칭'],
     timeAgo: '방금 전',
   }
 };
 
 const INITIAL_TIKTOK: TikTokPayload = {
   account: {
-    username: 'creative_lab',
+    username: 'mio_official',
     avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
   },
   post: {
     mediaType: 'video',
-    mediaUrl: 'https://assets.mixkit.co/videos/preview/mixkit-coffee-cup-with-latte-art-placed-on-a-table-41551-large.mp4',
-    hookTitle: '시선을 사로잡는 3초 숏폼 기획 💡',
-    caption: '평범한 일상 영상을 바이럴 콘텐츠로 바꾸는 방법 🎬\n\n✔ 인트로 3초 후킹 타이틀 배치법\n✔ 피사체의 몰입감을 높이는 카메라 앵글\n✔ 시청 지속 시간을 끌어올리는 사운드 선택\n\n저장해두고 다음 촬영 때 바로 적용해 보세요!',
-    hashtags: ['#fyp', '#추천', '#숏폼제작', '#영상편집', '#바이럴', '#크리에이터', '#콘텐츠제작'],
-    soundTitle: '오리지널 사운드 - Cinematic Ambient',
+    mediaUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
+    hookTitle: '질문하는 순간 새로운 세상이 열려! 💡',
+    caption: '호기심 많은 AI 크리에이터 미오 등장! 🐱💛\n\n✔ 3초 만에 시선 끄는 숏폼 기획\n✔ 아이디어 스케치부터 영상 렌더링까지\n✔ 매일 업데이트되는 크리에이터 치트키\n\n저장해두고 다음 꿀팁도 받아보세요!',
+    hashtags: ['#fyp', '#추천', '#미오', '#AI크리에이터', '#3D캐릭터', '#숏폼제작', '#바이럴'],
+    soundTitle: '오리지널 사운드 - Mio Theme Song',
     likesCount: 52400,
     commentsCount: 428,
     savesCount: 3890,
@@ -55,7 +55,6 @@ export default function Home() {
   const [currentView, setCurrentView] = useState<'studio' | 'calendar'>('studio');
   const [platform, setPlatform] = useState<'instagram' | 'tiktok'>('instagram');
 
-  // 최종 결과물 형태 선택 (비디오 vs 원본 사진 유지)
   const [outputFormat, setOutputFormat] = useState<'video' | 'image'>('video');
 
   const [prompt, setPrompt] = useState('');
@@ -65,16 +64,13 @@ export default function Home() {
   const [instaData, setInstaData] = useState<FeedPayload>(INITIAL_INSTA);
   const [tiktokData, setTiktokData] = useState<TikTokPayload>(INITIAL_TIKTOK);
 
-  // 캘린더 상태 관리
   const [calendarItems, setCalendarItems] = useState<CalendarItem[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  // 모달 입력값
   const [modalDate, setModalDate] = useState('2026-09-04');
   const [modalTime, setModalTime] = useState('18:30');
   const [modalPillar, setModalPillar] = useState<CalendarItem['pillar']>('정보/가치제공');
 
-  // 미디어 첨부 상태
   const [mediaPreviewUrl, setMediaPreviewUrl] = useState<string | null>(null);
   const [mediaType, setMediaType] = useState<'image' | 'video'>('image');
   const [imageBase64, setImageBase64] = useState<string | null>(null);
@@ -82,7 +78,6 @@ export default function Home() {
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // 로컬 스토리지 데이터 로드
   useEffect(() => {
     const saved = localStorage.getItem('socialgen_calendar');
     if (saved) {
@@ -192,13 +187,13 @@ export default function Home() {
     const updated = [newItem, ...calendarItems];
     saveToLocalStorage(updated);
     setIsModalOpen(false);
-    alert('캘린더에 성공적으로 등록되었습니다! 상단 [콘텐츠 캘린더] 탭에서 확인해 보세요.');
+    alert('캘린더에 성공적으로 등록되었습니다!');
   };
 
   return (
     <div className="min-h-screen bg-zinc-50 text-zinc-900 antialiased selection:bg-rose-500 selection:text-white">
 
-      {/* 1. 상단 글로벌 네비게이션 헤더 */}
+      {/* 1. 상단 헤더 */}
       <header className="sticky top-0 z-50 bg-white/90 backdrop-blur-md border-b border-zinc-200 px-6 py-4">
         <div className="max-w-6xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -211,7 +206,6 @@ export default function Home() {
             </span>
           </div>
 
-          {/* 중앙 모드 전환 탭 */}
           <div className="flex items-center bg-zinc-100 p-1 rounded-full border border-zinc-200 shadow-2xs">
             <button
               onClick={() => setCurrentView('studio')}
@@ -230,7 +224,6 @@ export default function Home() {
             </button>
           </div>
 
-          {/* 우측 플랫폼 스위처 */}
           {currentView === 'studio' ? (
             <div className="flex items-center bg-zinc-100 p-1 rounded-full border border-zinc-200">
               <button
@@ -266,7 +259,7 @@ export default function Home() {
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-start">
 
-            {/* 좌측 입력 폼 패널 */}
+            {/* 좌측 패널 */}
             <div className="lg:col-span-6 space-y-5">
               <div>
                 <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-rose-50 border border-rose-200/60 text-rose-700 text-xs font-bold mb-3">
@@ -283,10 +276,9 @@ export default function Home() {
                 </p>
               </div>
 
-              {/* 입력 컨트롤 카드 */}
               <div className="bg-white border border-zinc-200 rounded-3xl p-5 shadow-xs space-y-4">
 
-                {/* 미디어 첨부 영역 */}
+                {/* 미디어 첨부 */}
                 {!mediaPreviewUrl ? (
                   <div
                     onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
@@ -319,7 +311,7 @@ export default function Home() {
                   </div>
                 )}
 
-                {/* 결과물 형태 선택 스위치 */}
+                {/* 포맷 선택 */}
                 <div className="bg-zinc-50 border border-zinc-200 rounded-2xl p-2.5">
                   <span className="block text-[11px] font-bold text-zinc-500 mb-2 px-1">최종 결과물 형태 선택</span>
                   <div className="grid grid-cols-2 gap-2">
@@ -348,7 +340,7 @@ export default function Home() {
                   </div>
                 </div>
 
-                {/* 자연어 프롬프트 입력창 */}
+                {/* 입력창 */}
                 <div>
                   <label className="block text-xs font-bold text-zinc-800 mb-1.5">
                     콘텐츠 기획 아이디어 (자연어로 자유롭게 작성)
@@ -356,7 +348,7 @@ export default function Home() {
                   <textarea
                     value={prompt}
                     onChange={(e) => setPrompt(e.target.value)}
-                    placeholder="예: 따뜻한 햇살이 비치는 아침 카페에서 갓 구운 크루아상과 커피를 즐기는 감성 릴스를 만들어줘."
+                    placeholder="예: 첨부된 미오 캐릭터가 정면을 보며 환하게 손 흔들며 인사하는 첫 론칭 릴스 만들어줘."
                     rows={3}
                     className="w-full bg-zinc-50/60 border border-zinc-200 rounded-2xl p-3.5 text-xs text-zinc-900 placeholder-zinc-400 focus:outline-none focus:border-rose-500 transition resize-none leading-relaxed"
                   />
@@ -383,7 +375,7 @@ export default function Home() {
                 </button>
               </div>
 
-              {/* Veo 프롬프트 미리보기 */}
+              {/* Veo 프롬프트 */}
               {lastVeoPrompt && (
                 <div className="p-4 rounded-2xl bg-zinc-900 text-zinc-300 space-y-1.5">
                   <div className="flex items-center gap-1.5 text-xs font-bold text-amber-400">
@@ -396,7 +388,7 @@ export default function Home() {
                 </div>
               )}
 
-              {/* 범용 퀵 프리셋 버튼 */}
+              {/* 퀵 프리셋 */}
               <div className="space-y-2">
                 <span className="text-xs font-bold text-zinc-500">빠른 추천 아이디어</span>
                 <div className="flex flex-wrap gap-2">
@@ -421,7 +413,7 @@ export default function Home() {
               </div>
             </div>
 
-            {/* 우측 스마트 뷰포트 (인스타그램 / 틱톡 목업) */}
+            {/* 우측 목업 */}
             <div className="lg:col-span-6 flex flex-col items-center justify-center">
               <div className="w-full flex items-center justify-between max-w-[390px] mb-3 px-2">
                 <span className="text-xs font-mono text-zinc-400 font-bold uppercase">
@@ -431,7 +423,11 @@ export default function Home() {
               </div>
 
               {platform === 'instagram' ? (
-                <InstagramCard data={instaData} onAddToCalendar={() => setIsModalOpen(true)} />
+                <InstagramCard
+                  data={instaData}
+                  fallbackImageUrl={mediaPreviewUrl || (imageBase64 ? `data:${imageMimeType};base64,${imageBase64}` : null)}
+                  onAddToCalendar={() => setIsModalOpen(true)}
+                />
               ) : (
                 <TikTokCard data={tiktokData} onAddToCalendar={() => setIsModalOpen(true)} />
               )}
@@ -441,10 +437,10 @@ export default function Home() {
         )}
       </main>
 
-      {/* 3. 콘텐츠 캘린더 등록 모달 */}
+      {/* 3. 모달 */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-md w-full p-6 space-y-5 shadow-2xl border border-zinc-200 animate-in fade-in zoom-in-95 duration-200">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 space-y-5 shadow-2xl border border-zinc-200">
             <div className="flex items-center justify-between border-b border-zinc-100 pb-3">
               <h3 className="text-base font-black text-zinc-900 flex items-center gap-2">
                 <Calendar className="w-4 h-4 text-rose-500" />

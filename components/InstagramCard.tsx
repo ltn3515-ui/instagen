@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   Heart,
   MessageCircle,
@@ -9,12 +9,10 @@ import {
   Volume2,
   VolumeX,
   Play,
-  Pause,
   Sparkles,
   Copy,
   Check,
-  Calendar,
-  Share2
+  Calendar
 } from 'lucide-react';
 
 export interface FeedPayload {
@@ -37,10 +35,11 @@ export interface FeedPayload {
 
 interface Props {
   data: FeedPayload;
+  fallbackImageUrl?: string | null;
   onAddToCalendar?: () => void;
 }
 
-export default function InstagramCard({ data, onAddToCalendar }: Props) {
+export default function InstagramCard({ data, fallbackImageUrl, onAddToCalendar }: Props) {
   const [isPlaying, setIsPlaying] = useState(true);
   const [isMuted, setIsMuted] = useState(true);
   const [isLiked, setIsLiked] = useState(false);
@@ -48,6 +47,18 @@ export default function InstagramCard({ data, onAddToCalendar }: Props) {
   const [copied, setCopied] = useState(false);
   const [videoError, setVideoError] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
+
+  // 미디어 URL 변경 시 에러 및 재생 상태 리셋
+  useEffect(() => {
+    setVideoError(false);
+    setIsPlaying(true);
+    if (videoRef.current) {
+      videoRef.current.currentTime = 0;
+      videoRef.current.play().catch(() => {
+        setIsPlaying(false);
+      });
+    }
+  }, [data.post.mediaUrl]);
 
   const togglePlay = () => {
     if (!videoRef.current) return;
@@ -74,6 +85,12 @@ export default function InstagramCard({ data, onAddToCalendar }: Props) {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  // 백업으로 보여줄 유효한 이미지 주소 (업로드한 미오 사진 우선)
+  const displayBackupImage = fallbackImageUrl ||
+    (data.post.mediaUrl.startsWith('data:image') ? data.post.mediaUrl : 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=600&auto=format&fit=crop&q=80');
+
+  const isPureImage = data.post.mediaType === 'image' || data.post.mediaUrl.startsWith('data:image');
+
   return (
     <div className="w-full max-w-[390px] bg-white border border-zinc-200 rounded-[32px] overflow-hidden shadow-xl flex flex-col font-sans">
 
@@ -82,7 +99,7 @@ export default function InstagramCard({ data, onAddToCalendar }: Props) {
         <div className="flex items-center gap-2.5">
           <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-amber-500 via-rose-500 to-fuchsia-600 p-[2px]">
             <img
-              src={data.account.avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150'}
+              src={displayBackupImage}
               alt={data.account.username}
               className="w-full h-full rounded-full object-cover border border-white"
             />
@@ -94,7 +111,7 @@ export default function InstagramCard({ data, onAddToCalendar }: Props) {
                 <span className="w-3.5 h-3.5 rounded-full bg-blue-500 text-white flex items-center justify-center text-[8px]">✓</span>
               )}
             </div>
-            <p className="text-[10px] text-zinc-400">{data.account.location || 'Seoul, South Korea'}</p>
+            <p className="text-[10px] text-zinc-400">{data.account.location || 'Mio Studio, Seoul'}</p>
           </div>
         </div>
         <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-50 text-rose-600 border border-rose-100">
@@ -104,10 +121,10 @@ export default function InstagramCard({ data, onAddToCalendar }: Props) {
 
       {/* 2. 미디어 뷰포트 (비디오 / 이미지) */}
       <div className="relative aspect-[9/16] bg-zinc-950 flex items-center justify-center overflow-hidden cursor-pointer" onClick={togglePlay}>
-        {data.post.mediaType === 'image' || videoError ? (
+        {isPureImage || videoError ? (
           <img
-            src={data.post.mediaUrl}
-            alt="Feed Media"
+            src={displayBackupImage}
+            alt="Mio Content Visual"
             className="w-full h-full object-cover"
           />
         ) : (
@@ -118,19 +135,25 @@ export default function InstagramCard({ data, onAddToCalendar }: Props) {
             loop
             muted={isMuted}
             playsInline
-            onError={() => setVideoError(true)}
+            preload="auto"
+            onError={() => {
+              console.warn("비디오 렌더링 실패: 원본 이미지 대체 뷰로 전환합니다.");
+              setVideoError(true);
+            }}
+            onPlay={() => setIsPlaying(true)}
+            onPause={() => setIsPlaying(false)}
             className="w-full h-full object-cover"
           />
         )}
 
         {/* 뱃지 표시 */}
-        <div className="absolute top-3 left-3 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-black/50 backdrop-blur-md text-white text-[10px] font-bold border border-white/10">
+        <div className="absolute top-3 left-3 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-black/60 backdrop-blur-md text-white text-[10px] font-bold border border-white/10 shadow-sm">
           <Sparkles className="w-3 h-3 text-amber-400" />
-          <span>{data.post.mediaType === 'image' ? 'AI Visual' : 'Veo Video'}</span>
+          <span>{isPureImage || videoError ? 'AI Visual' : 'Veo Video'}</span>
         </div>
 
-        {/* 음소거 토글 버튼 */}
-        {data.post.mediaType !== 'image' && !videoError && (
+        {/* 음소거 토글 버튼 (비디오 재생 시만) */}
+        {!isPureImage && !videoError && (
           <button
             onClick={toggleMute}
             className="absolute bottom-3 right-3 w-8 h-8 rounded-full bg-black/60 backdrop-blur-md text-white flex items-center justify-center border border-white/20 hover:scale-105 transition"
@@ -140,7 +163,7 @@ export default function InstagramCard({ data, onAddToCalendar }: Props) {
         )}
 
         {/* 정지 오버레이 아이콘 */}
-        {data.post.mediaType !== 'image' && !isPlaying && !videoError && (
+        {!isPureImage && !isPlaying && !videoError && (
           <div className="absolute inset-0 bg-black/30 flex items-center justify-center pointer-events-none">
             <div className="w-12 h-12 rounded-full bg-white/80 backdrop-blur-sm flex items-center justify-center text-zinc-900 shadow-lg">
               <Play className="w-5 h-5 fill-current ml-0.5" />
@@ -193,7 +216,7 @@ export default function InstagramCard({ data, onAddToCalendar }: Props) {
         {onAddToCalendar && (
           <button
             onClick={onAddToCalendar}
-            className="flex-1 py-2 px-3 rounded-xl bg-white border border-zinc-200 text-[11px] font-bold text-zinc-700 hover:border-rose-300 hover:text-rose-600 flex items-center justify-center gap-1.5 transition shadow-2xs"
+            className="flex-1 py-2 px-3 rounded-xl bg-white border border-zinc-200 text-[11px] font-bold text-zinc-700 hover:border-rose-300 hover:text-rose-600 flex items-center justify-center gap-1.5 transition shadow-2xs cursor-pointer"
           >
             <Calendar className="w-3.5 h-3.5 text-rose-500" />
             <span>캘린더 등록</span>
@@ -201,7 +224,7 @@ export default function InstagramCard({ data, onAddToCalendar }: Props) {
         )}
         <button
           onClick={handleCopyCaption}
-          className="flex-1 py-2 px-3 rounded-xl bg-gradient-to-r from-rose-500 to-fuchsia-600 text-[11px] font-bold text-white hover:opacity-90 flex items-center justify-center gap-1.5 transition shadow-2xs"
+          className="flex-1 py-2 px-3 rounded-xl bg-gradient-to-r from-rose-500 to-fuchsia-600 text-[11px] font-bold text-white hover:opacity-90 flex items-center justify-center gap-1.5 transition shadow-2xs cursor-pointer"
         >
           {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
           <span>{copied ? '복사 완료' : '캡션 복사'}</span>
