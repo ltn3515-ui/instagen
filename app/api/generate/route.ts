@@ -25,7 +25,7 @@ export async function POST(req: Request) {
     const ai = new GoogleGenAI({ apiKey });
     const isTikTok = platform === 'tiktok';
 
-    // 1. Gemini 지시문: 범용 시각 분석 + 리스트형 캡션 + 6개 이상 타깃 해시태그 + Veo 프롬프트
+    // 1. Gemini 지시문: 시각 분석 + 리스트형 캡션 + 6개 이상 해시태그 + Veo 프롬프트
     const systemInstruction = `
 당신은 최고의 SNS 바이럴 콘텐츠 디렉터이자 비주얼 프롬프트 엔지니어입니다.
 사용자 요청(자연어 기획문 또는 첨부된 이미지/영상)을 분석하여 아래 규칙을 반드시 준수하여 순수 JSON으로만 응답하세요.
@@ -68,8 +68,9 @@ export async function POST(req: Request) {
     }
     contents.push(prompt || (isTikTok ? '이 미디어에 어울리는 바이럴 틱톡 숏폼을 기획해줘.' : '이 미디어에 어울리는 감성 인스타 릴스를 기획해줘.'));
 
+    // 최신 gemini-3.6-flash 모델 적용
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
+      model: 'gemini-3.6-flash',
       contents,
       config: {
         systemInstruction,
@@ -88,10 +89,8 @@ export async function POST(req: Request) {
     let finalMediaType: 'image' | 'video' = outputFormat === 'image' ? 'image' : 'video';
 
     if (outputFormat === 'image' && imageBase64) {
-      // [🖼️ 원본 사진 유지] 선택 시: 첨부한 이미지 원본 사용
       finalMediaUrl = `data:${mimeType || 'image/jpeg'};base64,${imageBase64}`;
     } else {
-      // [🎬 릴스/숏폼 영상] 선택 시: Veo 모델 비디오 생성
       finalMediaType = 'video';
       try {
         let operation: any = await (ai.models as any).generateVideos({
@@ -113,7 +112,6 @@ export async function POST(req: Request) {
           finalMediaUrl = operation.response.generatedVideos[0].video.uri;
         }
       } catch (veoErr: any) {
-        // Veo 호출 실패 시 안정적인 샘플 비디오 제공
         const sampleVideos = [
           'https://assets.mixkit.co/videos/preview/mixkit-coffee-cup-with-latte-art-placed-on-a-table-41551-large.mp4',
           'https://assets.mixkit.co/videos/preview/mixkit-cyclist-riding-down-a-hill-on-a-sunny-day-41619-large.mp4',
@@ -123,7 +121,7 @@ export async function POST(req: Request) {
       }
     }
 
-    // 3. 범용 해시태그 6개 이상 보장 처리
+    // 3. 해시태그 6개 이상 보장 처리
     let rawTags = parsedData.post?.hashtags || parsedData.hashtags || [];
     if (!Array.isArray(rawTags) || rawTags.length < 6) {
       const fallbackTags = isTikTok
@@ -132,7 +130,7 @@ export async function POST(req: Request) {
       rawTags = Array.from(new Set([...rawTags, ...fallbackTags])).slice(0, 8);
     }
 
-    // 4. 최종 응답 데이터 구성
+    // 4. 최종 클라이언트 응답 데이터 패키징
     const finalData = {
       account: {
         username: parsedData.account?.username || 'creator_lab',
