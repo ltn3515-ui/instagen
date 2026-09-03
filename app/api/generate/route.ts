@@ -66,7 +66,7 @@ export async function POST(req: Request) {
     contents.push(prompt || '인스타그램 릴스 기획안을 작성해줘.');
 
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
+      model: 'gemini-3.6-flash',
       contents,
       config: {
         systemInstruction,
