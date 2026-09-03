@@ -9,10 +9,10 @@ import {
   Volume2,
   VolumeX,
   Play,
-  Sparkles,
   Copy,
   Check,
-  Calendar
+  Calendar,
+  Sparkles
 } from 'lucide-react';
 
 export interface FeedPayload {
@@ -20,7 +20,6 @@ export interface FeedPayload {
     username: string;
     isVerified?: boolean;
     location?: string;
-    avatarUrl?: string;
   };
   post: {
     mediaType?: 'image' | 'video';
@@ -28,8 +27,6 @@ export interface FeedPayload {
     likesCount?: number;
     caption: string;
     hashtags: string[];
-    timeAgo?: string;
-    veoPrompt?: string;
   };
 }
 
@@ -45,24 +42,21 @@ export default function InstagramCard({ data, fallbackImageUrl, onAddToCalendar 
   const [isLiked, setIsLiked] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
   const [copied, setCopied] = useState(false);
-  const [videoLoaded, setVideoLoaded] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
 
-  // 미오 원본 이미지 백업 및 포스터
-  const posterImage = fallbackImageUrl || (data.post.mediaUrl?.startsWith('data:image') ? data.post.mediaUrl : null);
-  const isImageOnly = data.post.mediaType === 'image' || data.post.mediaUrl?.startsWith('data:image');
+  // 미디어 주소 및 타입 판별
+  const mediaUrl = data.post.mediaUrl || fallbackImageUrl || '';
+  const isVideo = data.post.mediaType === 'video' || mediaUrl.includes('video/') || mediaUrl.endsWith('.mp4');
 
   useEffect(() => {
-    setVideoLoaded(false);
     setIsPlaying(true);
-
-    if (videoRef.current && !isImageOnly) {
+    if (videoRef.current && isVideo) {
       videoRef.current.defaultMuted = true;
       videoRef.current.muted = true;
       videoRef.current.currentTime = 0;
-      videoRef.current.play().then(() => setIsPlaying(true)).catch(() => setIsPlaying(false));
+      videoRef.current.play().catch(() => setIsPlaying(false));
     }
-  }, [data.post.mediaUrl, isImageOnly]);
+  }, [mediaUrl, isVideo]);
 
   const togglePlay = () => {
     if (!videoRef.current) return;
@@ -81,7 +75,7 @@ export default function InstagramCard({ data, fallbackImageUrl, onAddToCalendar 
     setIsMuted(videoRef.current.muted);
   };
 
-  const handleCopyCaption = () => {
+  const handleCopy = () => {
     const fullText = `${data.post.caption}\n\n${data.post.hashtags.join(' ')}`;
     navigator.clipboard.writeText(fullText);
     setCopied(true);
@@ -96,7 +90,7 @@ export default function InstagramCard({ data, fallbackImageUrl, onAddToCalendar 
         <div className="flex items-center gap-2.5">
           <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-amber-500 via-rose-500 to-fuchsia-600 p-[2px]">
             <img
-              src={posterImage || data.account.avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150'}
+              src={fallbackImageUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150'}
               alt={data.account.username}
               className="w-full h-full rounded-full object-cover border border-white"
             />
@@ -108,77 +102,59 @@ export default function InstagramCard({ data, fallbackImageUrl, onAddToCalendar 
                 <span className="w-3.5 h-3.5 rounded-full bg-blue-500 text-white flex items-center justify-center text-[8px]">✓</span>
               )}
             </div>
-            <p className="text-[10px] text-zinc-400">{data.account.location || 'Mio Studio, Seoul'}</p>
+            <p className="text-[10px] text-zinc-400">{data.account.location || 'Seoul, Korea'}</p>
           </div>
         </div>
-        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-50 text-rose-600 border border-rose-100">
-          릴스 모션 ON
+        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-50 text-rose-600 border border-rose-100 flex items-center gap-1">
+          <Sparkles className="w-2.5 h-2.5" /> AI 생성 완료
         </span>
       </div>
 
-      {/* 2. 미디어 뷰포트 */}
-      <div className="relative aspect-[9/16] bg-zinc-950 flex items-center justify-center overflow-hidden cursor-pointer select-none" onClick={togglePlay}>
-
-        {/* 비디오 로딩 전 검은 화면 방지용 미오 포스터 이미지 */}
-        {posterImage && !videoLoaded && !isImageOnly && (
-          <img
-            src={posterImage}
-            alt="Mio Placeholder"
-            className="absolute inset-0 w-full h-full object-cover z-0"
-          />
-        )}
-
-        {isImageOnly ? (
-          <img
-            src={data.post.mediaUrl || posterImage || ''}
-            alt="Mio Content"
-            className="w-full h-full object-cover"
-          />
-        ) : (
+      {/* 2. 사용자가 올린 미디어 (동영상 / 사진 자동 전환) */}
+      <div className="relative aspect-[9/16] bg-zinc-950 flex items-center justify-center overflow-hidden cursor-pointer select-none" onClick={isVideo ? togglePlay : undefined}>
+        {isVideo ? (
           <video
             ref={videoRef}
-            key={data.post.mediaUrl}
-            src={data.post.mediaUrl}
-            poster={posterImage || undefined}
+            key={mediaUrl}
+            src={mediaUrl}
             autoPlay
             loop
             muted={isMuted}
             playsInline
-            preload="auto"
-            onLoadedData={() => setVideoLoaded(true)}
             onPlay={() => setIsPlaying(true)}
             onPause={() => setIsPlaying(false)}
-            className="relative z-10 w-full h-full object-cover"
+            className="w-full h-full object-cover"
+          />
+        ) : (
+          <img
+            src={mediaUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=600'}
+            alt="Uploaded Content"
+            className="w-full h-full object-cover"
           />
         )}
 
-        {/* 뱃지 */}
-        <div className="absolute top-3 left-3 z-20 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-black/60 backdrop-blur-md text-white text-[10px] font-bold border border-white/10 shadow-sm">
-          <Sparkles className="w-3 h-3 text-amber-400" />
-          <span>{isImageOnly ? 'AI Visual' : 'Veo Video'}</span>
-        </div>
+        {/* 동영상 전용 컨트롤 */}
+        {isVideo && (
+          <>
+            <button
+              onClick={toggleMute}
+              className="absolute bottom-3 right-3 w-8 h-8 rounded-full bg-black/60 backdrop-blur-md text-white flex items-center justify-center border border-white/20 hover:scale-105 transition z-10"
+            >
+              {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+            </button>
 
-        {/* 음소거 버튼 */}
-        {!isImageOnly && (
-          <button
-            onClick={toggleMute}
-            className="absolute bottom-3 right-3 z-20 w-8 h-8 rounded-full bg-black/60 backdrop-blur-md text-white flex items-center justify-center border border-white/20 hover:scale-105 transition"
-          >
-            {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
-          </button>
-        )}
-
-        {/* 일시정지 아이콘 */}
-        {!isImageOnly && !isPlaying && videoLoaded && (
-          <div className="absolute inset-0 z-20 bg-black/30 flex items-center justify-center pointer-events-none">
-            <div className="w-12 h-12 rounded-full bg-white/85 backdrop-blur-sm flex items-center justify-center text-zinc-900 shadow-lg">
-              <Play className="w-5 h-5 fill-current ml-0.5" />
-            </div>
-          </div>
+            {!isPlaying && (
+              <div className="absolute inset-0 bg-black/30 flex items-center justify-center pointer-events-none">
+                <div className="w-12 h-12 rounded-full bg-white/85 backdrop-blur-sm flex items-center justify-center text-zinc-900 shadow-lg">
+                  <Play className="w-5 h-5 fill-current ml-0.5" />
+                </div>
+              </div>
+            )}
+          </>
         )}
       </div>
 
-      {/* 3. 소셜 액션 바 */}
+      {/* 3. 소셜 인터랙션 */}
       <div className="px-4 pt-3 pb-2">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4 text-zinc-800">
@@ -198,10 +174,10 @@ export default function InstagramCard({ data, fallbackImageUrl, onAddToCalendar 
         </div>
 
         <p className="text-xs font-bold text-zinc-900 mt-2.5">
-          좋아요 {(data.post.likesCount || 12400) + (isLiked ? 1 : 0)}개
+          좋아요 {(data.post.likesCount || 1240) + (isLiked ? 1 : 0)}개
         </p>
 
-        {/* 4. 본문 & 태그 */}
+        {/* 4. 생성된 캡션 및 해시태그 */}
         <div className="mt-2 space-y-1.5 text-xs text-zinc-800 leading-relaxed">
           <p className="whitespace-pre-line">
             <span className="font-bold text-zinc-950 mr-1.5">{data.account.username}</span>
@@ -217,7 +193,7 @@ export default function InstagramCard({ data, fallbackImageUrl, onAddToCalendar 
         <p className="text-[10px] text-zinc-400 uppercase mt-2">방금 전</p>
       </div>
 
-      {/* 5. 하단 툴바 */}
+      {/* 5. 복사 및 캘린더 등록 액션 툴바 */}
       <div className="px-4 py-3 bg-zinc-50 border-t border-zinc-100 flex items-center justify-between gap-2">
         {onAddToCalendar && (
           <button
@@ -229,7 +205,7 @@ export default function InstagramCard({ data, fallbackImageUrl, onAddToCalendar 
           </button>
         )}
         <button
-          onClick={handleCopyCaption}
+          onClick={handleCopy}
           className="flex-1 py-2 px-3 rounded-xl bg-gradient-to-r from-rose-500 to-fuchsia-600 text-[11px] font-bold text-white hover:opacity-90 flex items-center justify-center gap-1.5 transition shadow-2xs cursor-pointer"
         >
           {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
