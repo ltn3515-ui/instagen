@@ -18,33 +18,33 @@ import {
 
 const INITIAL_INSTA: FeedPayload = {
   account: {
-    username: 'mio_creator',
+    username: 'creative_studio',
     isVerified: true,
-    location: 'Mio Studio, Seoul',
+    location: 'Seoul, South Korea',
     avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
   },
   post: {
     mediaType: 'video',
     mediaUrl: 'https://assets.mixkit.co/videos/preview/mixkit-coffee-cup-with-latte-art-placed-on-a-table-41551-large.mp4',
     likesCount: 3420,
-    caption: '반가워요! AI 크리에이터 미오(MIO)의 첫 기록 🐱✨\n\n• 상상 속 아이디어를 현실로 구현하는 창작 여정\n• 초보자도 쉽게 따라하는 실전 AI 숏폼 꿀팁\n• 비효율은 빼고 속도는 높이는 크리에이티브 워크플로우\n\n함께 성장할 준비가 되셨다면 지금 팔로우해 보세요 🚀',
-    hashtags: ['#미오', '#MIO', '#AI크리에이터', '#3D캐릭터', '#캐릭터디자인', '#릴스제작', '#고양이캐릭터', '#크리에이터일상'],
+    caption: '오늘의 영감을 기록하는 일상 속 한 장면 ☕✨\n\n• 공간의 분위기를 바꾸는 작은 루틴\n• 자연스러운 순간을 시네마틱 무드로 담아내기\n• 나만의 감성을 표현하는 콘텐츠 제작 팁\n\n여러분의 오늘 하루는 어떤 분위기인가요? 댓글로 들려주세요 🌿',
+    hashtags: ['#릴스', '#감성릴스', '#시네마틱', '#일상기록', '#숏폼제작', '#크리에이터', '#영상제작', '#데일리로그'],
     timeAgo: '방금 전',
   }
 };
 
 const INITIAL_TIKTOK: TikTokPayload = {
   account: {
-    username: 'mio_official',
+    username: 'creative_lab',
     avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
   },
   post: {
     mediaType: 'video',
     mediaUrl: 'https://assets.mixkit.co/videos/preview/mixkit-coffee-cup-with-latte-art-placed-on-a-table-41551-large.mp4',
-    hookTitle: '질문하는 순간, 새로운 세상이 열려! 💡',
-    caption: 'AI 크리에이터 미오(MIO) 등장! 🐱💛\n\n✔ 3초 만에 시선 끄는 숏폼 기획\n✔ 아이디어 스케치부터 영상 렌더링까지\n✔ 매일 업데이트되는 크리에이터 치트키\n\n저장해두고 다음 꿀팁도 받아보세요!',
-    hashtags: ['#fyp', '#추천', '#미오', '#AI크리에이터', '#3D캐릭터', '#숏폼제작', '#바이럴'],
-    soundTitle: '오리지널 사운드 - Mio Theme Song',
+    hookTitle: '시선을 사로잡는 3초 숏폼 기획 💡',
+    caption: '평범한 일상 영상을 바이럴 콘텐츠로 바꾸는 방법 🎬\n\n✔ 인트로 3초 후킹 타이틀 배치법\n✔ 피사체의 몰입감을 높이는 카메라 앵글\n✔ 시청 지속 시간을 끌어올리는 사운드 선택\n\n저장해두고 다음 촬영 때 바로 적용해 보세요!',
+    hashtags: ['#fyp', '#추천', '#숏폼제작', '#영상편집', '#바이럴', '#크리에이터', '#콘텐츠제작'],
+    soundTitle: '오리지널 사운드 - Cinematic Ambient',
     likesCount: 52400,
     commentsCount: 428,
     savesCount: 3890,
@@ -55,7 +55,7 @@ export default function Home() {
   const [currentView, setCurrentView] = useState<'studio' | 'calendar'>('studio');
   const [platform, setPlatform] = useState<'instagram' | 'tiktok'>('instagram');
 
-  // 생성 결과물 형태 선택 (비디오 vs 원본 사진 유지)
+  // 최종 결과물 형태 선택 (비디오 vs 원본 사진 유지)
   const [outputFormat, setOutputFormat] = useState<'video' | 'image'>('video');
 
   const [prompt, setPrompt] = useState('');
@@ -146,7 +146,7 @@ export default function Home() {
           imageBase64,
           mimeType: imageMimeType,
           platform,
-          outputFormat // 👈 비디오 또는 사진 선택값 전달
+          outputFormat
         }),
       });
 
@@ -207,7 +207,7 @@ export default function Home() {
             </div>
             <span className="font-black text-lg tracking-tight">SocialGen</span>
             <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-50 text-rose-600 border border-rose-200">
-              AI Engine
+              AI Studio
             </span>
           </div>
 
@@ -269,8 +269,8 @@ export default function Home() {
             {/* 좌측 입력 폼 패널 */}
             <div className="lg:col-span-6 space-y-5">
               <div>
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 border border-amber-200/60 text-amber-700 text-xs font-bold mb-3">
-                  <Sparkles className="w-3.5 h-3.5" /> 미오(MIO) 캐릭터 & 숏폼 자동화
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-rose-50 border border-rose-200/60 text-rose-700 text-xs font-bold mb-3">
+                  <Sparkles className="w-3.5 h-3.5" /> AI 기반 숏폼 & 피드 자동화 스튜디오
                 </span>
                 <h1 className="text-3xl sm:text-4xl font-black tracking-tight text-zinc-950 leading-tight">
                   자연어 한 줄로 완성하는<br />
@@ -279,7 +279,7 @@ export default function Home() {
                   </span>
                 </h1>
                 <p className="text-zinc-500 text-xs mt-2 leading-relaxed">
-                  미오 캐릭터 사진이나 아이디어를 입력하세요. 시각 분석을 통해 가독성 높은 리스트형 본문과 6개 이상의 타깃 해시태그를 자동 생성합니다.
+                  원하는 아이디어나 참고 미디어를 입력하세요. 시각 분석을 통해 가독성 높은 리스트형 본문과 6개 이상의 타깃 해시태그를 자동 완성합니다.
                 </p>
               </div>
 
@@ -301,8 +301,8 @@ export default function Home() {
                     className={`border-2 border-dashed rounded-2xl p-4 text-center cursor-pointer transition-all ${isDragging ? 'border-rose-500 bg-rose-50/40' : 'border-zinc-200 hover:border-zinc-300 bg-zinc-50/50'
                       }`}
                   >
-                    <p className="text-xs font-bold text-zinc-700">미오 캐릭터 사진 / 동영상 첨부 (선택)</p>
-                    <p className="text-[11px] text-zinc-400 mt-0.5">첨부 시 시각 요소를 분석해 캐릭터 특징에 맞춘 캡션을 작성합니다</p>
+                    <p className="text-xs font-bold text-zinc-700">참고 사진 / 동영상 첨부 (선택)</p>
+                    <p className="text-[11px] text-zinc-400 mt-0.5">이미지나 영상을 분석해 분위기와 피사체에 맞는 캡션을 자동 작성합니다</p>
                     <input type="file" ref={fileInputRef} onChange={(e) => e.target.files?.[0] && handleProcessFile(e.target.files[0])} className="hidden" />
                   </div>
                 ) : (
@@ -319,7 +319,7 @@ export default function Home() {
                   </div>
                 )}
 
-                {/* ★ 결과물 형태 선택 스위치 (비디오 vs 원본 사진) */}
+                {/* 결과물 형태 선택 스위치 */}
                 <div className="bg-zinc-50 border border-zinc-200 rounded-2xl p-2.5">
                   <span className="block text-[11px] font-bold text-zinc-500 mb-2 px-1">최종 결과물 형태 선택</span>
                   <div className="grid grid-cols-2 gap-2">
@@ -356,7 +356,7 @@ export default function Home() {
                   <textarea
                     value={prompt}
                     onChange={(e) => setPrompt(e.target.value)}
-                    placeholder="예: 미오 캐릭터가 정면을 보며 환하게 손 흔들며 첫 론칭 인사를 전하는 귀여운 릴스 만들어줘."
+                    placeholder="예: 따뜻한 햇살이 비치는 아침 카페에서 갓 구운 크루아상과 커피를 즐기는 감성 릴스를 만들어줘."
                     rows={3}
                     className="w-full bg-zinc-50/60 border border-zinc-200 rounded-2xl p-3.5 text-xs text-zinc-900 placeholder-zinc-400 focus:outline-none focus:border-rose-500 transition resize-none leading-relaxed"
                   />
@@ -396,14 +396,14 @@ export default function Home() {
                 </div>
               )}
 
-              {/* 미오 전용 퀵 프리셋 버튼 */}
+              {/* 범용 퀵 프리셋 버튼 */}
               <div className="space-y-2">
-                <span className="text-xs font-bold text-zinc-500">미오(MIO) 추천 테스트 아이디어</span>
+                <span className="text-xs font-bold text-zinc-500">빠른 추천 아이디어</span>
                 <div className="flex flex-wrap gap-2">
                   {[
-                    '미오 캐릭터가 반갑게 손 흔들며 첫 론칭 인사하는 릴스',
-                    '노트북 앞에서 열심히 코딩하다 번뜩 아이디어가 떠오른 미오',
-                    '미오 머그컵을 들고 따뜻한 커피 한 잔과 함께 하루를 시작하는 일상'
+                    '따뜻한 아포가토 에스프레소 붓는 슬로우 모션 릴스',
+                    '비 내리는 네온사인 도쿄 골목길 시네마틱 숏폼',
+                    '모래사장 위로 부서지는 에메랄드 파도 ASMR 숏폼'
                   ].map((idea, idx) => (
                     <button
                       key={idx}
@@ -414,7 +414,7 @@ export default function Home() {
                       }}
                       className="text-left text-xs px-3.5 py-2 rounded-xl bg-white border border-zinc-200 text-zinc-700 hover:border-rose-300 hover:text-rose-600 transition shadow-2xs cursor-pointer"
                     >
-                      🐱 {idea}
+                      ✨ {idea}
                     </button>
                   ))}
                 </div>

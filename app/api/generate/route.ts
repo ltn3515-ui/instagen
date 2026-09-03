@@ -10,7 +10,7 @@ export async function POST(req: Request) {
       imageBase64,
       mimeType,
       platform = 'instagram',
-      outputFormat = 'video' // 'video' | 'image' (프론트엔드 선택값)
+      outputFormat = 'video' // 'video' | 'image'
     } = await req.json();
 
     if (!prompt && !imageBase64) {
@@ -25,21 +25,21 @@ export async function POST(req: Request) {
     const ai = new GoogleGenAI({ apiKey });
     const isTikTok = platform === 'tiktok';
 
-    // 1. Gemini 지시문: 시각 분석 + 리스트형 캡션 + 6개 이상 타깃 해시태그 + Veo 프롬프트
+    // 1. Gemini 지시문: 범용 시각 분석 + 리스트형 캡션 + 6개 이상 타깃 해시태그 + Veo 프롬프트
     const systemInstruction = `
 당신은 최고의 SNS 바이럴 콘텐츠 디렉터이자 비주얼 프롬프트 엔지니어입니다.
-사용자 요청(자연어 기획문 또는 첨부된 이미지/캐릭터)을 분석하여 아래 규칙을 반드시 준수하여 순수 JSON으로만 응답하세요.
+사용자 요청(자연어 기획문 또는 첨부된 이미지/영상)을 분석하여 아래 규칙을 반드시 준수하여 순수 JSON으로만 응답하세요.
 
 [필수 작성 규칙]
 1. caption (본문):
    - 긴 줄글을 지양하고, 읽기 편한 **리스트 형식(체크리스트, 글머리 기호 •, ✔)**으로 깔끔하게 작성하세요.
-   - 구성: 감성 인트로 훅 한 줄 -> 핵심 포인트 3가지 리스트 -> 저장/팔로우 유도 마무리 한 줄.
+   - 구성: 감성 인트로 훅 한 줄 -> 핵심 포인트 3가지 리스트 -> 저장/댓글/팔로우 유도 마무리 한 줄.
 2. hashtags (해시태그):
    - **반드시 6개 이상 (6~10개)**을 생성하세요.
-   - 일반 태그(#릴스, #일상 등)에만 그치지 말고, 캐릭터명, 사물, 장소, 타깃 관심사 등 핵심 키워드를 정밀하게 매핑하세요.
+   - 피사체, 무드, 장소, 타깃 관심사 등 핵심 키워드를 정밀하게 매핑하세요.
    - 모든 태그는 '#' 기호로 시작해야 합니다.
 3. hookTitle: (틱톡 모드일 때 필수) 화면 중앙 3초 시선 집중용 텍스트.
-4. veoPrompt: 시네마틱 3D 애니메이션/비디오 렌더링용 영문 프롬프트 (카메라 구도, 캐릭터 특징, 조명, 24fps 4k look, 25단어 내외).
+4. veoPrompt: 시네마틱 숏폼 비디오 렌더링용 영문 프롬프트 (카메라 구도, 피사체 특징, 조명, 24fps 4k look, 25단어 내외).
 
 응답 포맷 (순수 JSON만 출력):
 {
@@ -53,7 +53,7 @@ export async function POST(req: Request) {
     "hashtags": ["#태그1", "#태그2", "#태그3", "#태그4", "#태그5", "#태그6", "#태그7", "#태그8"],
     "soundTitle": "추천 사운드명"
   },
-  "veoPrompt": "Vertical 9:16 cinematic 3D animation prompt..."
+  "veoPrompt": "Vertical 9:16 cinematic prompt..."
 }
     `.trim();
 
@@ -81,17 +81,17 @@ export async function POST(req: Request) {
     const cleanedText = rawText.replace(/```json/gi, '').replace(/```/g, '').trim();
     const parsedData = JSON.parse(cleanedText);
 
-    const generatedVeoPrompt = parsedData.veoPrompt || 'Vertical 9:16, cute 3D character animation, Pixar Disney style, soft studio lighting, 24fps film look';
+    const generatedVeoPrompt = parsedData.veoPrompt || 'Vertical 9:16, cinematic atmosphere, smooth camera motion, soft natural lighting, 24fps film look';
 
     // 2. 미디어 결과물 처리: 사용자가 선택한 outputFormat('video' vs 'image')에 따른 분기
     let finalMediaUrl = '';
     let finalMediaType: 'image' | 'video' = outputFormat === 'image' ? 'image' : 'video';
 
     if (outputFormat === 'image' && imageBase64) {
-      // 사용자가 [🖼️ 원본 사진 유지]를 선택한 경우: 첨부한 원본 사진 사용
+      // [🖼️ 원본 사진 유지] 선택 시: 첨부한 이미지 원본 사용
       finalMediaUrl = `data:${mimeType || 'image/jpeg'};base64,${imageBase64}`;
     } else {
-      // 사용자가 [🎬 릴스/숏폼 영상]을 선택했거나 이미지가 없는 경우: Veo 비디오 생성 시도
+      // [🎬 릴스/숏폼 영상] 선택 시: Veo 모델 비디오 생성
       finalMediaType = 'video';
       try {
         let operation: any = await (ai.models as any).generateVideos({
@@ -113,7 +113,7 @@ export async function POST(req: Request) {
           finalMediaUrl = operation.response.generatedVideos[0].video.uri;
         }
       } catch (veoErr: any) {
-        // Veo 호출 지연/실패 시 안정적인 프리뷰 비디오 자동 제공
+        // Veo 호출 실패 시 안정적인 샘플 비디오 제공
         const sampleVideos = [
           'https://assets.mixkit.co/videos/preview/mixkit-coffee-cup-with-latte-art-placed-on-a-table-41551-large.mp4',
           'https://assets.mixkit.co/videos/preview/mixkit-cyclist-riding-down-a-hill-on-a-sunny-day-41619-large.mp4',
@@ -123,30 +123,30 @@ export async function POST(req: Request) {
       }
     }
 
-    // 3. 해시태그 6개 이상 보장 처리
+    // 3. 범용 해시태그 6개 이상 보장 처리
     let rawTags = parsedData.post?.hashtags || parsedData.hashtags || [];
     if (!Array.isArray(rawTags) || rawTags.length < 6) {
       const fallbackTags = isTikTok
-        ? ['#fyp', '#추천', '#미오', '#AI크리에이터', '#3D캐릭터', '#숏폼제작', '#바이럴']
-        : ['#미오', '#MIO', '#AI크리에이터', '#3D캐릭터', '#캐릭터디자인', '#릴스제작', '#감성릴스', '#크리에이터일상'];
+        ? ['#fyp', '#추천', '#숏폼', '#바이럴', '#릴스제작', '#트렌드', '#크리에이터']
+        : ['#릴스', '#감성릴스', '#인스타감성', '#데일리', '#오늘의기록', '#추천피드', '#트렌드'];
       rawTags = Array.from(new Set([...rawTags, ...fallbackTags])).slice(0, 8);
     }
 
-    // 4. 최종 클라이언트 응답 데이터 패키징
+    // 4. 최종 응답 데이터 구성
     const finalData = {
       account: {
-        username: parsedData.account?.username || 'mio_creator',
+        username: parsedData.account?.username || 'creator_lab',
         isVerified: parsedData.account?.isVerified ?? true,
-        location: parsedData.account?.location || 'Mio Studio, Seoul',
+        location: parsedData.account?.location || 'Creative Space',
         avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
       },
       post: {
         mediaType: finalMediaType,
         mediaUrl: finalMediaUrl,
-        hookTitle: parsedData.post?.hookTitle || parsedData.hookTitle || '질문하는 순간, 새로운 세상이 열려! 💡',
-        caption: parsedData.post?.caption || '반가워요! AI 크리에이터 미오(MIO)입니다 🐱✨\n\n✔ 상상 속 아이디어를 현실로 만드는 창작 여정\n✔ 누구나 쉽게 따라하는 AI 숏폼 꿀팁\n✔ 복잡한 건 빼고 실전 팁만 쏙쏙!\n\n앞으로 함께 성장해 갈 분들은 팔로우해 주세요 🚀',
+        hookTitle: parsedData.post?.hookTitle || parsedData.hookTitle || '시선을 끄는 숏폼 기획 💡',
+        caption: parsedData.post?.caption || '감각적인 순간을 담아내는 비주얼 아카이브 ✨\n\n✔ 트렌디한 감성을 담은 앵글 연출\n✔ 시선을 머물게 하는 스토리 구성\n✔ 실전에서 바로 쓰는 콘텐츠 공식\n\n도움이 되셨다면 저장하고 참고해 보세요 🚀',
         hashtags: rawTags,
-        soundTitle: parsedData.post?.soundTitle || '오리지널 사운드 - Mio Theme Song',
+        soundTitle: parsedData.post?.soundTitle || '오리지널 사운드 - Cinematic Vibe',
         likesCount: parsedData.post?.likesCount || 12400,
         commentsCount: parsedData.post?.commentsCount || 142,
         savesCount: parsedData.post?.savesCount || 890,
